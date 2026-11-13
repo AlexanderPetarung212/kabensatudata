@@ -24,6 +24,9 @@ class AnalysisService
                 ->select([
                     'family_members.*',
                     'family_members.nik',
+                    'family_members.ihs_number',
+                    'family_members.nik_verified_status',
+                    'family_members.nik_verified_at',
                     'family_members.birth_date',
                     'family_members.relationship',
                     'families.family_number',
@@ -255,6 +258,43 @@ class AnalysisService
                         $query->whereRaw("family_members.use_toilet = 1");
                     } else {
                         $query->whereRaw("(family_members.use_toilet = 0 OR family_members.use_toilet IS NULL)");
+                    }
+                    break;
+
+                // ─── Filter Verifikasi NIK & SATUSEHAT ───────────────────
+                case 'nik_status':
+                    switch ($value) {
+                        case 'verified':
+                            // NIK Terverifikasi SATUSEHAT — punya ihs_number dan nik_verified_status = verified
+                            $query->where('family_members.nik_verified_status', 'verified');
+                            break;
+                        case 'unverified':
+                            // Punya NIK tapi belum terverifikasi SATUSEHAT
+                            $query->whereNotNull('family_members.nik')
+                                  ->where('family_members.nik', '!=', '')
+                                  ->where('family_members.nik_verified_status', '!=', 'verified');
+                            break;
+                        case 'no_nik':
+                            // Belum punya NIK sama sekali
+                            $query->where(function ($q) {
+                                $q->whereNull('family_members.nik')
+                                  ->orWhere('family_members.nik', '');
+                            });
+                            break;
+                    }
+                    break;
+
+                case 'has_ihs_number':
+                    if ($value === '1') {
+                        // Memiliki IHS Number (terdaftar di SATUSEHAT)
+                        $query->whereNotNull('family_members.ihs_number')
+                              ->where('family_members.ihs_number', '!=', '');
+                    } else {
+                        // Tidak memiliki IHS Number
+                        $query->where(function ($q) {
+                            $q->whereNull('family_members.ihs_number')
+                              ->orWhere('family_members.ihs_number', '');
+                        });
                     }
                     break;
             }

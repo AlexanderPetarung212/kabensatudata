@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class Family extends Model
 {
     protected $fillable = [
+        'uuid',
         'building_id',
         'family_number',
         'sequence_number_in_building',
@@ -21,7 +23,10 @@ class Family extends Model
         'is_toilet_sanitary',
         'has_mental_illness',
         'takes_medication_regularly',
-        'has_restrained_member'
+        'has_restrained_member',
+        'synced_at',
+        'synced_by',
+        'device_id',
     ];
 
     protected $casts = [
@@ -377,6 +382,9 @@ class Family extends Model
         parent::boot();
 
         static::creating(function ($family) {
+            if (empty($family->uuid)) {
+                $family->uuid = Str::uuid()->toString();
+            }
             $family->generateSequenceNumber();
         });
     }

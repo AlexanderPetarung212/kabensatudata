@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'fcm' => [
+        'service_account_path' => env('FCM_SERVICE_ACCOUNT_PATH', base_path('firebase-service-account.json')),
+        'project_id' => env('FCM_PROJECT_ID', 'kabensatudata'),
+    ],
+
+    'google_drive' => [
+        'client_id' => env('GDRIVE_CLIENT_ID'),
+        'client_secret' => env('GDRIVE_CLIENT_SECRET'),
+        'refresh_token' => env('GDRIVE_REFRESH_TOKEN'),
+        'folder_id' => env('GDRIVE_FOLDER_ID'),
+    ],
+
 ];

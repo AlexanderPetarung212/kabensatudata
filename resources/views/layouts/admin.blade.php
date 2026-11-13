@@ -25,6 +25,12 @@
                     <span class="icon">🏠</span>
                     <span x-show="open" x-transition.opacity>Dashboard</span>
                 </a>
+                @can('command_center.view')
+                    <a href="{{ route('command-center.index') }}" class="nav-link {{ request()->routeIs('command-center.*') ? 'active' : '' }}">
+                        <span class="icon">🖥️</span>
+                        <span x-show="open" x-transition.opacity>Command Center</span>
+                    </a>
+                @endcan
                 <!-- Master Data group -->
                 <div x-data="{ openMaster: {{ (
                         request()->routeIs('panel.medicines.*') ||
@@ -119,6 +125,10 @@
                     <span class="icon">📊</span>
                     <span x-show="open" x-transition.opacity>Public Dashboard</span>
                 </a>
+                <a href="{{ route('panel.announcements.index') }}" class="nav-link {{ request()->routeIs('panel.announcements.*') ? 'active' : '' }}">
+                    <span class="icon">📢</span>
+                    <span x-show="open" x-transition.opacity>Pemberitahuan APK</span>
+                </a>
                 
             </nav>
             <div class="p-4 border-t border-white/10 mt-4">
@@ -158,6 +168,9 @@
                     <span id="desktopTopIndicator" class="absolute bottom-0 h-0.5 bg-fuchsia-400 rounded transition-all duration-300" style="left:0;width:0"></span>
 
                     <a href="{{ route('panel.dashboard') }}" class="dtab-item {{ request()->routeIs('panel.dashboard') ? 'active' : '' }}"><span class="icon">🏠</span><span class="label">Dashboard</span></a>
+                    @can('command_center.view')
+                        <a href="{{ route('command-center.index') }}" class="dtab-item {{ request()->routeIs('command-center.*') ? 'active' : '' }}"><span class="icon">🖥️</span><span class="label">Command Center</span></a>
+                    @endcan
 
                     <div x-data="{ openMT: {{ (
                         request()->routeIs('panel.medicines.*') ||
@@ -314,6 +327,12 @@
                     <span class="icon">🏠</span>
                     <span class="label">Home</span>
                 </a>
+                @can('command_center.view')
+                    <a href="{{ route('command-center.index') }}" class="nav-btn {{ request()->routeIs('command-center.*') ? 'active' : '' }}">
+                        <span class="icon">🖥️</span>
+                        <span class="label">Monitor</span>
+                    </a>
+                @endcan
 
                 <a href="#" @click.prevent="openMasterBottom = !openMasterBottom" class="nav-btn {{ (
                     request()->routeIs('panel.medicines.*') ||

@@ -8,8 +8,10 @@ use App\Models\SuratArchive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use App\Services\GoogleDriveService;
 
 class SuratArchiveController extends Controller
 {
@@ -66,6 +68,18 @@ class SuratArchiveController extends Controller
 
         $path = $request->file('file')->store('arsip', 'public');
 
+        $gdriveFileId = null;
+        $gdriveUrl = null;
+
+        try {
+            $gdrive = new GoogleDriveService();
+            $result = $gdrive->upload($request->file('file'), 'E-Arsip_Surat');
+            $gdriveFileId = $result['file_id'];
+            $gdriveUrl = $result['direct_link'];
+        } catch (\Exception $e) {
+            Log::warning('GDrive arsip upload failed: ' . $e->getMessage());
+        }
+
         SuratArchive::create([
             'jenis' => strtoupper($data['jenis']),
             'nomor_surat' => $data['nomor_surat'] ?? null,
@@ -73,6 +87,8 @@ class SuratArchiveController extends Controller
             'perihal' => $data['perihal'],
             'issued_at' => $data['issued_at'],
             'file_path' => $path,
+            'gdrive_file_id' => $gdriveFileId,
+            'gdrive_url' => $gdriveUrl,
             'created_by' => Auth::id(),
             'meta' => null,
         ]);
@@ -100,13 +116,17 @@ class SuratArchiveController extends Controller
     {
         $this->authorizeView($archive);
 
+        // Redirect to Google Drive if available
+        if ($archive->gdrive_url) {
+            return redirect($archive->gdrive_url);
+        }
+
         $full = storage_path('app/public/' . $archive->file_path);
         if (!is_file($full)) {
             abort(404, 'File tidak ditemukan');
         }
         $ext = pathinfo($full, PATHINFO_EXTENSION);
         $nomor = $archive->nomor_surat ?: 'nonomor';
-        // Normalisasi nomor: ganti slash/spasi jadi strip
         $nomorSan = preg_replace('#[^A-Za-z0-9]+#', '-', $nomor);
         $judul = $archive->perihal ?: 'dokumen';
         $judulSlug = Str::limit(Str::slug($judul, '-'), 60, '');
@@ -139,10 +159,26 @@ class SuratArchiveController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
+            // Delete old file (GDrive + local)
+            if ($archive->gdrive_file_id) {
+                try { (new GoogleDriveService())->delete($archive->gdrive_file_id); } catch (\Exception $e) {}
+            }
             if ($archive->file_path) {
                 Storage::disk('public')->delete($archive->file_path);
             }
+
             $archive->file_path = $request->file('file')->store('arsip', 'public');
+
+            try {
+                $gdrive = new GoogleDriveService();
+                $result = $gdrive->upload($request->file('file'), 'E-Arsip_Surat');
+                $archive->gdrive_file_id = $result['file_id'];
+                $archive->gdrive_url = $result['direct_link'];
+            } catch (\Exception $e) {
+                Log::warning('GDrive arsip update failed: ' . $e->getMessage());
+                $archive->gdrive_file_id = null;
+                $archive->gdrive_url = null;
+            }
         }
 
         $archive->jenis = strtoupper($data['jenis']);
@@ -158,6 +194,10 @@ class SuratArchiveController extends Controller
     public function destroy(SuratArchive $archive)
     {
         $this->authorizeManage($archive);
+        // Delete from GDrive
+        if ($archive->gdrive_file_id) {
+            try { (new GoogleDriveService())->delete($archive->gdrive_file_id); } catch (\Exception $e) {}
+        }
         if ($archive->file_path) {
             Storage::disk('public')->delete($archive->file_path);
         }

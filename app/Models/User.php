@@ -8,6 +8,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -50,5 +51,12 @@ class User extends Authenticatable implements FilamentUser
     {
         // Berikan akses ke panel admin hanya untuk user yang memiliki role
         return $this->hasAnyRole(['super_admin', 'admin', 'petugas', 'supervisor', 'kepala_dinas']);
+    }
+
+    public function managedSites(): BelongsToMany
+    {
+        return $this->belongsToMany(ManagedSite::class, 'managed_site_user')
+            ->withPivot('assigned_by')
+            ->withTimestamps();
     }
 }

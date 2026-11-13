@@ -38,6 +38,10 @@
                     <span class="icon">🗂️</span>
                     <span>E‑Arsip Surat</span>
                 </a>
+                <a href="{{ route('pegawai.inventaris.ruangan.index') }}" class="peg-nav {{ request()->routeIs('pegawai.inventaris.*') ? 'active' : '' }}">
+                    <span class="icon">📦</span>
+                    <span>Inventaris</span>
+                </a>
                 <a href="/panel" class="peg-nav">
                 <span class="icon">🅿️</span>
                     <span>Panel Dashboard</span>
@@ -75,6 +79,7 @@
                 <a href="{{ route('pegawai.dashboard') }}" class="peg-nav {{ request()->routeIs('pegawai.dashboard') ? 'active' : '' }}"><span class="icon">🏠</span><span>Dashboard</span></a>
                 <a href="{{ route('spm.dashboard') }}" class="peg-nav {{ request()->routeIs('spm.dashboard') ? 'active' : '' }}"><span class="icon">📊</span><span>SPM Kesehatan</span></a>
                 <a href="{{ route('pegawai.employees.index') }}" class="peg-nav {{ request()->routeIs('pegawai.employees.*') ? 'active' : '' }}"><span class="icon">🧑‍💼</span><span>Data Pegawai</span></a>
+                <a href="{{ route('pegawai.inventaris.ruangan.index') }}" class="peg-nav {{ request()->routeIs('pegawai.inventaris.*') ? 'active' : '' }}"><span class="icon">📦</span><span>Inventaris</span></a>
                 @php($user = auth()->user())
                 @if($user)
                     @php($mine = \App\Models\Pegawai::firstWhere('user_id', $user->id))

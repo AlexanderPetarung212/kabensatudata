@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Satellite Map Comparison - Kaben</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #fff; }
+        .header { padding: 16px; text-align: center; background: #16213e; }
+        .header h1 { font-size: 18px; margin-bottom: 4px; }
+        .header p { font-size: 13px; color: #aaa; }
+        .maps-container { display: flex; height: calc(100vh - 80px); }
+        .map-wrapper { flex: 1; position: relative; border: 1px solid #333; }
+        .map-label {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: rgba(0,0,0,0.8); color: #fff; padding: 6px 16px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+        }
+        .map { height: 100%; width: 100%; }
+        .zoom-info {
+            position: absolute; bottom: 30px; left: 10px; z-index: 1000;
+            background: rgba(0,0,0,0.8); color: #0f0; padding: 4px 10px;
+            border-radius: 8px; font-size: 12px; font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛰️ Perbandingan Satelit — Lokasi Kaben</h1>
+        <p>Lat: -5.7465, Lng: 134.797 | Zoom untuk cek kualitas rumah</p>
+    </div>
+    <div class="maps-container">
+        <div class="map-wrapper">
+            <div class="map-label">🗺️ OpenStreetMap (Sekarang)</div>
+            <div id="map-osm" class="map"></div>
+            <div id="zoom-osm" class="zoom-info">Zoom: 15</div>
+        </div>
+        <div class="map-wrapper">
+            <div class="map-label">🛰️ Esri World Imagery (Satelit)</div>
+            <div id="map-esri" class="map"></div>
+            <div id="zoom-esri" class="zoom-info">Zoom: 15</div>
+        </div>
+    </div>
+    <script>
+        const center = [-5.7465, 134.797032];
+        const defaultZoom = 15;
+
+        // OSM Map
+        const osmMap = L.map('map-osm').setView(center, defaultZoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(osmMap);
+
+        // Esri Satellite Map
+        const esriMap = L.map('map-esri').setView(center, defaultZoom);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '© Esri, Maxar, Earthstar'
+        }).addTo(esriMap);
+
+        // Sync maps
+        let syncing = false;
+        function syncMap(source, target) {
+            if (syncing) return;
+            syncing = true;
+            target.setView(source.getCenter(), source.getZoom(), { animate: false });
+            syncing = false;
+        }
+        osmMap.on('move', () => syncMap(osmMap, esriMap));
+        esriMap.on('move', () => syncMap(esriMap, osmMap));
+
+        // Update zoom display
+        osmMap.on('zoomend', () => {
+            document.getElementById('zoom-osm').textContent = 'Zoom: ' + osmMap.getZoom();
+        });
+        esriMap.on('zoomend', () => {
+            document.getElementById('zoom-esri').textContent = 'Zoom: ' + esriMap.getZoom();
+        });
+
+        // Add marker at center
+        L.marker(center).addTo(osmMap).bindPopup('Kaben');
+        L.marker(center).addTo(esriMap).bindPopup('Kaben');
+    </script>
+</body>
+</html>

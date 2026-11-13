@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Building extends Model
 {
@@ -17,14 +18,25 @@ class Building extends Model
      * @var array
      */
     protected $fillable = [
+        'uuid',
         'building_number',
         'village_id',
         'latitude',
         'longitude',
-        // 'address',
-        // 'notes',
-        // 'status'
+        'description',
+        'synced_at',
+        'synced_by',
+        'device_id',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = Str::uuid()->toString();
+            }
+        });
+    }
 
     /**
      * The attributes that should be cast.

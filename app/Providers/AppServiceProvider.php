@@ -12,6 +12,9 @@ use Filament\Support\Assets\Js;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\ClockMiddleware;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +31,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('agent-enrollment', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('agent-api', function (Request $request) {
+            $tokenFingerprint = hash('sha256', (string) $request->bearerToken());
+
+            return Limit::perMinute(240)->by($tokenFingerprint ?: $request->ip());
+        });
+
         // Mendaftarkan observer untuk model FamilyMember
         FamilyMember::observe(FamilyMemberObserver::class);
 

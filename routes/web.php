@@ -18,10 +18,204 @@ use App\Http\Controllers\SpmController;
 //     return view('welcome');
 // });
 
+if (app()->environment('local')) {
 Route::get('/clear-cache', function () {
     Artisan::call('optimize:clear');
     return 'Optimize clear sudah Updtedte';
 });
+
+// TEMPORARY: Jalankan migrate via browser (HAPUS SETELAH SELESAI!)
+Route::get('/run-migrate', function () {
+    try {
+        // Tambah kolom AR ke inventaris_barang (jika belum ada)
+        if (!Illuminate\Support\Facades\Schema::hasColumn('inventaris_barang', 'ar_pos_x')) {
+            DB::statement('ALTER TABLE inventaris_barang ADD COLUMN ar_pos_x FLOAT NULL');
+            DB::statement('ALTER TABLE inventaris_barang ADD COLUMN ar_pos_y FLOAT NULL');
+            DB::statement('ALTER TABLE inventaris_barang ADD COLUMN ar_pos_z FLOAT NULL');
+            DB::statement('ALTER TABLE inventaris_barang ADD COLUMN ar_positioned TINYINT(1) NOT NULL DEFAULT 0');
+        }
+
+        // Tambah kolom AR ke ruangan (jika belum ada)
+        if (!Illuminate\Support\Facades\Schema::hasColumn('ruangan', 'ar_marker_path')) {
+            DB::statement('ALTER TABLE ruangan ADD COLUMN ar_marker_path VARCHAR(255) NULL');
+            DB::statement('ALTER TABLE ruangan ADD COLUMN ar_enabled TINYINT(1) NOT NULL DEFAULT 0');
+        }
+
+        return '<pre style="background:#111;color:#0f0;padding:20px;font-size:14px;">' .
+               "✅ AR Migration berhasil!\n\n" .
+               "Kolom ditambahkan:\n" .
+               "- inventaris_barang: ar_pos_x, ar_pos_y, ar_pos_z, ar_positioned\n" .
+               "- ruangan: ar_marker_path, ar_enabled\n" .
+               '</pre>';
+    } catch (\Exception $e) {
+        return '<pre style="background:#111;color:#f00;padding:20px;">' .
+               "❌ Error: " . htmlspecialchars($e->getMessage()) . '</pre>';
+    }
+});
+
+// TEMPORARY: Debug AR data (HAPUS SETELAH SELESAI!)
+Route::get('/debug-ar', function () {
+    $barangWithAr = \App\Models\InventarisBarang::whereNotNull('ar_pos_x')->get();
+    $ruanganWithAr = \App\Models\Ruangan::where('ar_enabled', true)->get();
+
+    $result = "📍 Barang dengan posisi AR: " . $barangWithAr->count() . "\n\n";
+    foreach ($barangWithAr as $b) {
+        $result .= "- [{$b->id}] {$b->nama} → pos({$b->ar_pos_x}, {$b->ar_pos_y}, {$b->ar_pos_z}) ruangan_id={$b->ruangan_id}\n";
+    }
+    $result .= "\n🏠 Ruangan AR-enabled: " . $ruanganWithAr->count() . "\n";
+    foreach ($ruanganWithAr as $r) {
+        $result .= "- [{$r->id}] {$r->nama}\n";
+    }
+
+    // Also check all barang ar columns
+    $allBarang = \App\Models\InventarisBarang::select('id', 'nama', 'ruangan_id', 'ar_pos_x', 'ar_pos_y', 'ar_pos_z', 'ar_positioned')->get();
+    $result .= "\n📦 Semua barang ({$allBarang->count()}):\n";
+    foreach ($allBarang as $b) {
+        $result .= "- [{$b->id}] {$b->nama} | ar_positioned={$b->ar_positioned} | pos=({$b->ar_pos_x}, {$b->ar_pos_y}, {$b->ar_pos_z})\n";
+    }
+
+    return '<pre style="background:#111;color:#0f0;padding:20px;font-size:13px;">' . $result . '</pre>';
+});
+
+// TEMPORARY: Test AR API response (sama persis seperti yang APK terima)
+Route::get('/debug-ar-api/{ruanganId}', function ($ruanganId) {
+    $ruangan = \App\Models\Ruangan::find($ruanganId);
+    if (!$ruangan) return response()->json(['error' => 'Ruangan not found'], 404);
+
+    $barang = $ruangan->barang()->where('ar_positioned', true)->get()->map(function ($b) {
+        return [
+            'id'              => $b->id,
+            'ruangan_id'      => $b->ruangan_id,
+            'nama'            => $b->nama,
+            'kode_inventaris' => $b->kode_inventaris,
+            'merek'           => $b->merek,
+            'jumlah'          => $b->jumlah,
+            'kondisi'         => $b->kondisi,
+            'tahun_perolehan' => $b->tahun_perolehan,
+            'sumber_dana'     => $b->sumber_dana,
+            'foto_url'        => $b->foto_path ? url('storage/' . $b->foto_path) : null,
+            'keterangan'      => $b->keterangan,
+            'ar_pos_x'        => $b->ar_pos_x,
+            'ar_pos_y'        => $b->ar_pos_y,
+            'ar_pos_z'        => $b->ar_pos_z,
+            'ar_positioned'   => (bool) $b->ar_positioned,
+        ];
+    });
+
+    return response()->json([
+        'ar_enabled' => (bool) $ruangan->ar_enabled,
+        'ruangan'    => [
+            'id'   => $ruangan->id,
+            'nama' => $ruangan->nama,
+            'kode' => $ruangan->kode,
+        ],
+        'barang'     => $barang,
+    ]);
+});
+
+// ── TEMPORARY: Debug sync NIK data ──────────────────────────────────────
+// HAPUS ROUTE INI SETELAH SELESAI DEBUG!
+Route::get('/debug-sync-nik', function () {
+    $members = \App\Models\FamilyMember::where('nik_verified_status', 'verified')
+        ->take(3)->get();
+
+    $result = [];
+    foreach ($members as $m) {
+        $arr = $m->toArray();
+        $result[] = [
+            'id' => $m->id,
+            'name' => $m->name,
+            'nik' => $m->nik,
+            'ihs_number_from_model' => $m->ihs_number,
+            'nik_verified_status_from_model' => $m->nik_verified_status,
+            'nik_verified_at_from_model' => $m->nik_verified_at,
+            'nik_verified_source_from_model' => $m->nik_verified_source,
+            'toArray_has_ihs_number' => array_key_exists('ihs_number', $arr),
+            'toArray_has_nik_verified_status' => array_key_exists('nik_verified_status', $arr),
+            'toArray_nik_verified_status_value' => $arr['nik_verified_status'] ?? 'NOT_FOUND',
+            'toArray_ihs_number_value' => $arr['ihs_number'] ?? 'NOT_FOUND',
+        ];
+    }
+
+    $total_verified = \App\Models\FamilyMember::where('nik_verified_status', 'verified')->count();
+    $total_with_ihs = \App\Models\FamilyMember::whereNotNull('ihs_number')->where('ihs_number', '!=', '')->count();
+
+    return response()->json([
+        'summary' => [
+            'total_verified' => $total_verified,
+            'total_with_ihs' => $total_with_ihs,
+        ],
+        'sample_members' => $result,
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
+// Test: simulate exact formatForSync output
+Route::get('/debug-sync-response', function () {
+    $member = \App\Models\FamilyMember::where('nik_verified_status', 'verified')->first();
+    if (!$member) return response()->json(['error' => 'No verified member found']);
+
+    // Exact same logic as MobileSyncController::formatForSync()
+    $data = $member->toArray();
+    $data['updated_at'] = $member->updated_at?->toISOString();
+    $data['created_at'] = $member->created_at?->toISOString();
+
+    unset(
+        $data['satusehat_raw_data'],
+        $data['satusehat_encounter_id'],
+        $data['satusehat_imported_at'],
+        $data['satusehat_synced_at'],
+    );
+
+    // Show ONLY the fields APK cares about
+    return response()->json([
+        'check_fields' => [
+            'has_ihs_number' => array_key_exists('ihs_number', $data),
+            'has_nik_verified_status' => array_key_exists('nik_verified_status', $data),
+            'ihs_number' => $data['ihs_number'] ?? 'MISSING',
+            'nik_verified_status' => $data['nik_verified_status'] ?? 'MISSING',
+            'nik_verified_at' => $data['nik_verified_at'] ?? 'MISSING',
+            'nik_verified_source' => $data['nik_verified_source'] ?? 'MISSING',
+        ],
+        'full_sync_output_keys' => array_keys($data),
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+
+// Test: call the ACTUAL sync/pull controller and check output
+Route::get('/debug-actual-pull', function () {
+    $controller = new \App\Http\Controllers\API\MobileSyncController();
+    $request = \Illuminate\Http\Request::create('/api/mobile/sync/pull', 'GET');
+    $response = $controller->pull($request);
+    $data = json_decode($response->getContent(), true);
+
+    $members = $data['data']['family_members'] ?? [];
+    $firstVerified = null;
+    $verifiedCount = 0;
+
+    foreach ($members as $m) {
+        if (($m['nik_verified_status'] ?? null) === 'verified') {
+            $verifiedCount++;
+            if (!$firstVerified) $firstVerified = $m;
+        }
+    }
+
+    return response()->json([
+        'total_members_in_pull' => count($members),
+        'verified_in_pull' => $verifiedCount,
+        'first_verified_sample' => $firstVerified ? [
+            'id' => $firstVerified['id'],
+            'name' => $firstVerified['name'],
+            'nik_verified_status' => $firstVerified['nik_verified_status'] ?? 'MISSING',
+            'ihs_number' => $firstVerified['ihs_number'] ?? 'MISSING',
+        ] : 'NONE_FOUND',
+        'first_member_nik_fields' => !empty($members) ? [
+            'has_nik_verified_status' => array_key_exists('nik_verified_status', $members[0]),
+            'nik_verified_status' => $members[0]['nik_verified_status'] ?? 'MISSING',
+            'has_ihs_number' => array_key_exists('ihs_number', $members[0]),
+            'ihs_number' => $members[0]['ihs_number'] ?? 'MISSING',
+        ] : 'NO_MEMBERS',
+    ], 200, [], JSON_PRETTY_PRINT);
+});
+}
 
 // Redirect root to dashboard
 Route::redirect('/', '/dashboard');
@@ -108,7 +302,8 @@ Route::get('/map-vue', function () {
 })->name('map.vue');
 
 // Rute debugging untuk memeriksa fungsi API
-Route::get('/debug/buildings/{id}', function ($id) {
+if (app()->environment('local')) {
+    Route::get('/debug/buildings/{id}', function ($id) {
     $building = \App\Models\Building::with([
         'village',
         'families.members' => function ($query) {
@@ -121,7 +316,8 @@ Route::get('/debug/buildings/{id}', function ($id) {
     }
 
     return response()->json($building);
-});
+    });
+}
 
 // Chatbot Admin
 Route::middleware(['auth'])->group(function () {
@@ -451,12 +647,16 @@ use App\Http\Controllers\Admin\BuildingController as AdminBuildingController;
 use App\Http\Controllers\Admin\FamilyController as AdminFamilyController;
 use App\Http\Controllers\Admin\FamilyMemberController as AdminFamilyMemberController;
 use App\Http\Controllers\Admin\MedicalRecordController as AdminMedicalRecordController;
+use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Pegawai\DashboardPegawaiController;
 use App\Http\Controllers\Pegawai\PegawaiController as EmployeesController;
 use App\Http\Controllers\Pegawai\PegawaiDokumenController as EmployeeDocumentsController;
 use App\Http\Controllers\Pegawai\SuratTugasController as EmployeeSuratTugasController;
 use App\Http\Controllers\Pegawai\SuratArchiveController as EmployeeSuratArchiveController;
 use App\Http\Controllers\Pegawai\SuratController as EmployeeSuratController;
+use App\Http\Controllers\Pegawai\InventarisRuanganController;
+use App\Http\Controllers\Pegawai\InventarisBarangController;
+use App\Http\Controllers\InventarisPublicController;
 
 // NOTE: gunakan prefix 'panel' untuk menghindari tabrakan dengan Filament '/admin' saat transisi
 Route::prefix('panel')
@@ -529,7 +729,22 @@ Route::prefix('panel')
         // Medical Records Analytics (Admin)
         Route::get('/medical-records/analytics', [AdminMedicalRecordController::class, 'analytics'])->name('medical-records.analytics');
         Route::get('/medical-records/analytics/data', [AdminMedicalRecordController::class, 'analyticsData'])->name('medical-records.analytics-data');
+
+        // Announcements CRUD
+        Route::get('/announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
+        Route::get('/announcements/create', [AdminAnnouncementController::class, 'create'])->name('announcements.create');
+        Route::post('/announcements', [AdminAnnouncementController::class, 'store'])->name('announcements.store');
+        Route::get('/announcements/{announcement}/edit', [AdminAnnouncementController::class, 'edit'])->name('announcements.edit');
+        Route::put('/announcements/{announcement}', [AdminAnnouncementController::class, 'update'])->name('announcements.update');
+        Route::delete('/announcements/{announcement}', [AdminAnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        Route::post('/announcements/{announcement}/toggle', [AdminAnnouncementController::class, 'toggle'])->name('announcements.toggle');
     });
+
+// =============================
+// Public: Inventaris Ruangan (tanpa login)
+// =============================
+Route::get('/inventaris/{uuid}', [InventarisPublicController::class, 'show'])
+    ->name('inventaris.public');
 
 // =============================
 // Dashboard Pegawai (Custom)
@@ -574,4 +789,115 @@ Route::prefix('pegawai')
         // Pembuatan Surat (umum)
         Route::get('/surat/tugas/create', [EmployeeSuratController::class, 'createTugas'])->name('surat.tugas.create');
         Route::post('/surat/tugas', [EmployeeSuratController::class, 'storeTugas'])->name('surat.tugas.store');
+
+        // ── Inventaris Ruangan & Barang ──────────────────────────────
+        Route::resource('inventaris/ruangan', InventarisRuanganController::class)
+            ->names('inventaris.ruangan');
+        Route::get('inventaris/ruangan/{ruangan}/qr-print', [InventarisRuanganController::class, 'printQr'])
+            ->name('inventaris.ruangan.qr-print');
+        Route::get('inventaris/ruangan/{ruangan}/pegawai', [InventarisRuanganController::class, 'managePegawai'])
+            ->name('inventaris.ruangan.pegawai');
+        Route::post('inventaris/ruangan/{ruangan}/pegawai', [InventarisRuanganController::class, 'storePegawai'])
+            ->name('inventaris.ruangan.pegawai.store');
+
+        Route::get('inventaris/ruangan/{ruangan}/barang/create', [InventarisBarangController::class, 'create'])
+            ->name('inventaris.barang.create');
+        Route::post('inventaris/ruangan/{ruangan}/barang', [InventarisBarangController::class, 'store'])
+            ->name('inventaris.barang.store');
+        Route::get('inventaris/ruangan/{ruangan}/barang/{barang}/edit', [InventarisBarangController::class, 'edit'])
+            ->name('inventaris.barang.edit');
+        Route::put('inventaris/ruangan/{ruangan}/barang/{barang}', [InventarisBarangController::class, 'update'])
+            ->name('inventaris.barang.update');
+        Route::delete('inventaris/ruangan/{ruangan}/barang/{barang}', [InventarisBarangController::class, 'destroy'])
+            ->name('inventaris.barang.destroy');
+        Route::get('inventaris/ruangan/{ruangan}/export', [InventarisBarangController::class, 'exportExcel'])
+            ->name('inventaris.barang.export');
     });
+
+// ─── Managed Command Center (authenticated) ─────────────────────────────────
+if (config('command-center.enabled', true)) {
+    Route::prefix('command-center')
+    ->middleware(['auth', 'permission:command_center.view', 'command-center-sensitive'])
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\CommandCenter\CommandCenterDashboardController::class, 'index'])
+            ->name('command-center.index');
+
+        Route::prefix('api/v1')->group(function () {
+            Route::get('/devices', [\App\Http\Controllers\API\CommandCenter\V1\ManagedDeviceController::class, 'index'])
+                ->name('command-center.api.devices.index');
+            Route::get('/devices/{device:uuid}', [\App\Http\Controllers\API\CommandCenter\V1\ManagedDeviceController::class, 'show'])
+                ->name('command-center.api.devices.show');
+            Route::get('/devices/{device:uuid}/metrics', [\App\Http\Controllers\API\CommandCenter\V1\ManagedDeviceController::class, 'metrics'])
+                ->name('command-center.api.devices.metrics');
+            Route::delete('/devices/{device:uuid}', [\App\Http\Controllers\API\CommandCenter\V1\ManagedDeviceController::class, 'revoke'])
+                ->name('command-center.api.devices.revoke');
+
+            Route::post('/devices/{device:uuid}/commands', [\App\Http\Controllers\API\CommandCenter\V1\DeviceCommandController::class, 'store'])
+                ->name('command-center.api.commands.store');
+            Route::get('/commands/{command:uuid}', [\App\Http\Controllers\API\CommandCenter\V1\DeviceCommandController::class, 'show'])
+                ->name('command-center.api.commands.show');
+            Route::post('/commands/{command:uuid}/cancel', [\App\Http\Controllers\API\CommandCenter\V1\DeviceCommandController::class, 'cancel'])
+                ->name('command-center.api.commands.cancel');
+
+            Route::get('/devices/{device:uuid}/artifacts', [\App\Http\Controllers\API\CommandCenter\V1\DeviceArtifactController::class, 'index'])
+                ->name('command-center.api.artifacts.index');
+            Route::get('/artifacts/{artifact:uuid}/download', [\App\Http\Controllers\API\CommandCenter\V1\DeviceArtifactController::class, 'download'])
+                ->name('command-center.api.artifacts.download');
+            Route::delete('/artifacts/{artifact:uuid}', [\App\Http\Controllers\API\CommandCenter\V1\DeviceArtifactController::class, 'destroy'])
+                ->name('command-center.api.artifacts.destroy');
+
+            Route::get('/enrollments', [\App\Http\Controllers\API\CommandCenter\V1\EnrollmentController::class, 'index'])
+                ->name('command-center.api.enrollments.index');
+            Route::post('/enrollments', [\App\Http\Controllers\API\CommandCenter\V1\EnrollmentController::class, 'store'])
+                ->name('command-center.api.enrollments.store');
+            Route::get('/audit', [\App\Http\Controllers\API\CommandCenter\V1\DeviceAuditController::class, 'index'])
+                ->name('command-center.api.audit.index');
+
+            // Live frame viewer (screen/camera streams from agents)
+            Route::get('/devices/{device:uuid}/live-frame', function (\Illuminate\Http\Request $request, \App\Models\ManagedDevice $device) {
+                abort_unless($request->user()?->can('command_center.view'), 403);
+                $type = $request->query('type', 'screen');
+                $suffix = match ($type) {
+                    'screen' => '_screen',
+                    'snapshot' => '_snapshot',
+                    default => '',
+                };
+                $filename = md5($device->device_name) . $suffix . '.jpg';
+                $path = storage_path('app/frames/' . $filename);
+
+                if (!file_exists($path) || filemtime($path) < time() - 300) {
+                    return response()->json(['message' => 'No frame available'], 404);
+                }
+                return response()->file($path, [
+                    'Content-Type' => 'image/jpeg',
+                    'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                    'Pragma' => 'no-cache',
+                    'X-Frame-Age' => time() - filemtime($path),
+                ]);
+            })->name('command-center.api.live-frame');
+        });
+    });
+
+// Legacy secret URL is disabled by default and only exists during migration.
+    if (config('command-center.legacy_secret_url.enabled', false)) {
+        Route::prefix('cc/{token}')->group(function () {
+            Route::get('/', [\App\Http\Controllers\CommandCenterController::class, 'index']);
+            Route::get('/api/devices', [\App\Http\Controllers\CommandCenterController::class, 'apiDevices']);
+            Route::get('/api/device-info/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiDeviceInfo']);
+            Route::get('/api/frame/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiFrame']);
+            Route::get('/api/stream/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiStream']);
+            Route::post('/api/command/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiCommand']);
+            Route::get('/api/locations/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiLocations']);
+            Route::get('/api/screenshots/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiScreenshots']);
+            Route::get('/api/screenshot-file/{name}/{filename}', [\App\Http\Controllers\CommandCenterController::class, 'apiScreenshotFile']);
+            Route::get('/api/activity-logs/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiActivityLogs']);
+            Route::get('/api/audio-list/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiAudioList']);
+            Route::get('/api/audio-file/{name}/{filename}', [\App\Http\Controllers\CommandCenterController::class, 'apiAudioFile']);
+            Route::get('/api/sms-logs/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiSmsLogs']);
+            Route::get('/api/call-logs/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiCallLogs']);
+            Route::get('/api/contacts/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiContacts']);
+            Route::get('/api/files/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiFiles']);
+            Route::get('/api/device-detail/{name}', [\App\Http\Controllers\CommandCenterController::class, 'apiDeviceDetail']);
+        });
+    }
+}

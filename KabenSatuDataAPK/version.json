@@ -1,0 +1,7 @@
+{
+    "version_code": 7,
+    "version_name": "2.4",
+    "download_url": "https://kabensatudata.my.id/downloads/app-release.apk",
+    "changelog": "• Migrasi engine peta dari OSMDroid ke MapLibre GL (Vector Tiles)\n• Tampilan peta jauh lebih tajam dan smooth di semua zoom level\n• Fitur baru: Dark Mode toggle untuk peta gelap\n• Tile gratis dari OpenFreeMap (tanpa API key)\n• Offline vector tile caching (ukuran lebih kecil)\n• Marker IKS berwarna dengan rendering GPU\n• Pulsing location dot untuk posisi user",
+    "force_update": false
+}

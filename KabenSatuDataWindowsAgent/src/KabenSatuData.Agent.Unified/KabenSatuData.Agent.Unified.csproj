@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <AssemblyName>SystemUpdate</AssemblyName>
+    <RootNamespace>KabenSatuData.Agent.Unified</RootNamespace>
+    <Version>1.0.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../KabenSatuData.Agent.Contracts/KabenSatuData.Agent.Contracts.csproj" />
+    <ProjectReference Include="../KabenSatuData.Agent.Core/KabenSatuData.Agent.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
+    <PackageReference Include="OpenCvSharp4.Windows" Version="4.11.0.20250506" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+  <!-- Link source files from Service project -->
+  <ItemGroup>
+    <Compile Include="../KabenSatuData.Agent.Service/AgentPaths.cs" Link="Service/AgentPaths.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/AgentWorker.cs" Link="Service/AgentWorker.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/CompanionCommandBridge.cs" Link="Service/CompanionCommandBridge.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/DpapiSecretProtector.cs" Link="Service/DpapiSecretProtector.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/FileBrowserService.cs" Link="Service/FileBrowserService.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/ServiceCommandExecutor.cs" Link="Service/ServiceCommandExecutor.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/SystemMetricsCollector.cs" Link="Service/SystemMetricsCollector.cs" />
+    <Compile Include="../KabenSatuData.Agent.Service/WindowsInventory.cs" Link="Service/WindowsInventory.cs" />
+  </ItemGroup>
+  <!-- Link source files from Companion project -->
+  <ItemGroup>
+    <Compile Include="../KabenSatuData.Agent.Companion/AudioService.cs" Link="Companion/AudioService.cs" />
+    <Compile Include="../KabenSatuData.Agent.Companion/CameraService.cs" Link="Companion/CameraService.cs" />
+    <Compile Include="../KabenSatuData.Agent.Companion/CompanionApiClient.cs" Link="Companion/CompanionApiClient.cs" />
+    <Compile Include="../KabenSatuData.Agent.Companion/CompanionCommandExecutor.cs" Link="Companion/CompanionCommandExecutor.cs" />
+    <Compile Include="../KabenSatuData.Agent.Companion/CompanionLoop.cs" Link="Companion/CompanionLoop.cs" />
+    <Compile Include="../KabenSatuData.Agent.Companion/ScreenStreamService.cs" Link="Companion/ScreenStreamService.cs" />
+  </ItemGroup>
+</Project>

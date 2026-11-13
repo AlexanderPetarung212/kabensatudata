@@ -17,6 +17,8 @@ class PegawaiDokumen extends Model
         'jenis',
         'judul',
         'file_path',
+        'gdrive_file_id',
+        'gdrive_url',
         'issued_at',
         'keterangan',
     ];

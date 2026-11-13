@@ -19,6 +19,8 @@ class SuratArchive extends Model
         'perihal',
         'issued_at',
         'file_path',
+        'gdrive_file_id',
+        'gdrive_url',
         'created_by',
         'meta',
     ];

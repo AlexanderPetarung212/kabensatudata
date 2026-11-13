@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Fingerprint Analyzer — Diagnostik Device</title>
+  <meta name="description" content="Tool diagnostik untuk menganalisis browser fingerprint dan mengidentifikasi data identifikasi yang bocor ke website.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header__badge">
+        <span class="pulse-dot"></span>
+        Fingerprint Diagnostics
+      </div>
+      <h1 class="header__title">Browser Fingerprint Analyzer</h1>
+      <p class="header__subtitle">
+        Analisis semua data identifikasi yang browser Anda bocorkan ke website. 
+        Temukan mengapa ban tetap aktif meskipun sudah ganti akun.
+      </p>
+      <button class="btn-scan" id="btnScan" onclick="startScan()">
+        <span class="icon">🔍</span>
+        <span id="btnScanText">Mulai Analisis</span>
+      </button>
+
+      <!-- Progress -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-label">
+          <span id="progressStatus">Memulai scan...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="progressFill"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dashboard Cards -->
+    <div class="dashboard" id="dashboard">
+
+      <!-- Network Info -->
+      <div class="card" id="cardNetwork" style="animation-delay: 0.05s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--network">🌐</div>
+            <div>
+              <div class="card__title">Network Info</div>
+              <div class="card__subtitle">Alamat IP & koneksi</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskNetwork">—</div>
+        </div>
+        <div class="data-rows" id="dataNetwork">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- Hardware Info -->
+      <div class="card" id="cardHardware" style="animation-delay: 0.1s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--hardware">🖥️</div>
+            <div>
+              <div class="card__title">Hardware Info</div>
+              <div class="card__subtitle">Perangkat keras device</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskHardware">—</div>
+        </div>
+        <div class="data-rows" id="dataHardware">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- Browser Info -->
+      <div class="card" id="cardBrowser" style="animation-delay: 0.15s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--browser">🌍</div>
+            <div>
+              <div class="card__title">Browser Info</div>
+              <div class="card__subtitle">Informasi browser & OS</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskBrowser">—</div>
+        </div>
+        <div class="data-rows" id="dataBrowser">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- Canvas Fingerprint -->
+      <div class="card" id="cardCanvas" style="animation-delay: 0.2s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--canvas">🎨</div>
+            <div>
+              <div class="card__title">Canvas Fingerprint</div>
+              <div class="card__subtitle">Identifikasi rendering unik</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskCanvas">—</div>
+        </div>
+        <div class="data-rows" id="dataCanvas">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- Audio Fingerprint -->
+      <div class="card" id="cardAudio" style="animation-delay: 0.25s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--audio">🔊</div>
+            <div>
+              <div class="card__title">Audio Fingerprint</div>
+              <div class="card__subtitle">AudioContext processing</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskAudio">—</div>
+        </div>
+        <div class="data-rows" id="dataAudio">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- Storage & Cookies -->
+      <div class="card" id="cardStorage" style="animation-delay: 0.3s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--storage">📦</div>
+            <div>
+              <div class="card__title">Storage & Cookies</div>
+              <div class="card__subtitle">Data tersimpan di browser</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskStorage">—</div>
+        </div>
+        <div class="data-rows" id="dataStorage">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- WebGL Fingerprint -->
+      <div class="card" id="cardWebgl" style="animation-delay: 0.35s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--webgl">🔑</div>
+            <div>
+              <div class="card__title">WebGL Fingerprint</div>
+              <div class="card__subtitle">Identifikasi GPU</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskWebgl">—</div>
+        </div>
+        <div class="data-rows" id="dataWebgl">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- WebRTC Analysis -->
+      <div class="card" id="cardWebrtc" style="animation-delay: 0.4s">
+        <div class="card__header">
+          <div class="card__header-left">
+            <div class="card__icon card__icon--webrtc">📡</div>
+            <div>
+              <div class="card__title">WebRTC Analysis</div>
+              <div class="card__subtitle">IP leak detection</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskWebrtc">—</div>
+        </div>
+        <div class="data-rows" id="dataWebrtc">
+          <div class="data-row"><span class="data-row__label">Status</span><span class="data-row__value data-row__value--muted">Menunggu scan...</span></div>
+        </div>
+      </div>
+
+      <!-- Risk Assessment Panel -->
+      <div class="panel" id="panelRisk" style="animation-delay: 0.45s">
+        <h2 class="panel__title">⚡ Risk Assessment</h2>
+        <p class="panel__description">Tingkat risiko identifikasi per kategori — semakin tinggi, semakin mudah website mengenali Anda.</p>
+
+        <div class="risk-overview" id="riskOverview">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="overall-score" id="overallScore">
+          <div class="overall-score__circle" id="overallCircle" style="--score-pct: 0; --score-color: var(--text-muted);">
+            <span id="overallScoreValue">—</span>
+          </div>
+          <div class="overall-score__info">
+            <h3 id="overallScoreLabel">Menunggu Analisis</h3>
+            <p id="overallScoreDesc">Klik tombol "Mulai Analisis" untuk memulai scan fingerprint browser Anda.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendations Panel -->
+      <div class="panel" id="panelRecommendations" style="animation-delay: 0.5s">
+        <h2 class="panel__title">💡 Rekomendasi</h2>
+        <p class="panel__description">Langkah-langkah spesifik berdasarkan hasil analisis fingerprint Anda.</p>
+
+        <div class="recommendations" id="recommendations">
+          <div class="recommendation">
+            <div class="recommendation__icon recommendation__icon--info">ℹ️</div>
+            <div class="recommendation__content">
+              <h4>Menunggu Hasil Scan</h4>
+              <p>Jalankan analisis terlebih dahulu untuk mendapatkan rekomendasi yang sesuai dengan kondisi browser Anda.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Browser Fingerprint Analyzer v1.0 — Tool diagnostik privasi browser</p>
+      <p style="margin-top: 4px;">Data diproses 100% lokal di browser Anda. Tidak ada data yang dikirim ke server manapun.</p>
+    </footer>
+  </div>
+
+  <!-- Hidden canvas for fingerprinting -->
+  <canvas id="canvasFingerprint" width="280" height="60" style="display: none;"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -12,7 +12,7 @@
                 <!-- Row Variable -->
                 <div>
                     <x-filament::input.wrapper>
-                        <x-filament::input.label>Variabel Baris</x-filament::input.label>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Variabel Baris</label>
                         <select 
                             x-model="rowVariable" 
                             class="w-full border-gray-300 rounded-lg shadow-sm"
@@ -32,7 +32,7 @@
                 <!-- Column Variable -->
                 <div>
                     <x-filament::input.wrapper>
-                        <x-filament::input.label>Variabel Kolom</x-filament::input.label>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Variabel Kolom</label>
                         <select 
                             x-model="columnVariable" 
                             class="w-full border-gray-300 rounded-lg shadow-sm"
@@ -52,7 +52,7 @@
                 <!-- Aggregation -->
                 <div>
                     <x-filament::input.wrapper>
-                        <x-filament::input.label>Fungsi Agregasi</x-filament::input.label>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Fungsi Agregasi</label>
                         <select 
                             x-model="aggregation" 
                             class="w-full border-gray-300 rounded-lg shadow-sm"
@@ -67,7 +67,7 @@
                     
                     <div x-show="aggregation !== 'count'" class="mt-3">
                         <x-filament::input.wrapper>
-                            <x-filament::input.label>Variabel Nilai</x-filament::input.label>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Variabel Nilai</label>
                             <select 
                                 x-model="valueField" 
                                 class="w-full border-gray-300 rounded-lg shadow-sm"

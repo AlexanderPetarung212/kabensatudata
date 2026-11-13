@@ -686,16 +686,33 @@ export function useMap() {
     // expose in store for sibling components (e.g., OfflineControls)
     try { store.setMap(map) } catch (_) {}
 
-    // OSM tiles
-    tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Base layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: store.maxZoom,
       maxNativeZoom: 19,
       minZoom: store.minZoom,
-      subdomains: ['a'], // match prefetch subdomain for better offline coverage
+      subdomains: ['a'],
       attribution: '&copy; OpenStreetMap contributors',
       crossOrigin: true,
     })
-    tileLayer.addTo(map)
+
+    const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: store.maxZoom,
+      maxNativeZoom: 19,
+      minZoom: store.minZoom,
+      attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+      crossOrigin: true,
+    })
+
+    // Add default layer
+    osmLayer.addTo(map)
+    tileLayer = osmLayer
+
+    // Layer control (bottom-right, to avoid overlap with NavigationPanel/OfflineControls)
+    L.control.layers({
+      '🗺️ Peta Jalan': osmLayer,
+      '🛰️ Satelit': esriSatellite,
+    }, null, { position: 'bottomright', collapsed: false }).addTo(map)
 
     // Cluster
     const cluster = L.markerClusterGroup({

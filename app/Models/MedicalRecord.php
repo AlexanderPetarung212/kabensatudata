@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class MedicalRecord extends Model
 {
     protected $fillable = [
+        'uuid',
+        'satusehat_encounter_id',
+        'data_source',
         'family_member_id',
         'visit_date',
         'chief_complaint',
@@ -53,7 +57,12 @@ class MedicalRecord extends Model
         'patient_nik',
         'patient_rm_number',
         'patient_birth_date',
-        'patient_age'
+        'patient_age',
+        // Sync fields
+        'synced_at',
+        'synced_by',
+        'device_id',
+        'satusehat_imported_at',
     ];
 
     protected $casts = [
@@ -70,6 +79,7 @@ class MedicalRecord extends Model
         'doctor_end_time' => 'datetime',
         'pharmacy_start_time' => 'datetime',
         'pharmacy_end_time' => 'datetime',
+        'satusehat_imported_at' => 'datetime',
     ];
 
     /**
@@ -345,8 +355,10 @@ class MedicalRecord extends Model
             $this->patient_birth_date = $this->familyMember->birth_date;
             $this->patient_age = $this->familyMember->age;
 
-            // Get address from family->building->village
-            if ($this->familyMember->family && $this->familyMember->family->building) {
+            // Prefer direct address (Quick Register patients) over village chain
+            if (!empty($this->familyMember->address)) {
+                $this->patient_address = $this->familyMember->address;
+            } elseif ($this->familyMember->family && $this->familyMember->family->building) {
                 $building = $this->familyMember->family->building;
                 $village = $building->village ?? null;
 
@@ -462,6 +474,9 @@ class MedicalRecord extends Model
 
         // Auto-sync patient data when creating new medical record
         static::creating(function ($medicalRecord) {
+            if (empty($medicalRecord->uuid)) {
+                $medicalRecord->uuid = Str::uuid()->toString();
+            }
             $medicalRecord->syncPatientData();
         });
 

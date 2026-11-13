@@ -359,7 +359,31 @@ class AnalysisController extends Controller
                         ]
                     ]
                 ]
-            ]
+            ],
+
+            // ─── NIK & SATUSEHAT ──────────────────────────────────────────
+            'nik_verification' => [
+                'title' => '🔐 Verifikasi NIK & SATUSEHAT',
+                'variables' => [
+                    'nik_status' => [
+                        'label' => 'Status Verifikasi NIK',
+                        'type' => 'select',
+                        'options' => [
+                            'verified'   => '✅ NIK Terverifikasi SATUSEHAT',
+                            'unverified' => '⚪ NIK Belum Terverifikasi',
+                            'no_nik'     => '❌ Belum Punya NIK',
+                        ]
+                    ],
+                    'has_ihs_number' => [
+                        'label' => 'Memiliki IHS Number (SATUSEHAT)',
+                        'type' => 'boolean',
+                        'options' => [
+                            '1' => 'Ya (Terdaftar di SATUSEHAT)',
+                            '0' => 'Tidak (Belum terdaftar)',
+                        ]
+                    ],
+                ]
+            ],
         ];
     }
 

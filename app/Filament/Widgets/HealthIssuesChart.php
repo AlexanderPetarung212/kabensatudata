@@ -8,7 +8,7 @@ use App\Models\Village;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Contracts\View\View;
 
-class LivewireHealthIssuesChart extends ChartWidget
+class HealthIssuesChart extends ChartWidget
 {
     protected static ?string $heading = 'Grafik Masalah Kesehatan';
 

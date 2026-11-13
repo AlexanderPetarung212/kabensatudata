@@ -5,9 +5,17 @@
 
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Handle Authorization Header (multiple fallbacks for shared hosting)
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Fallback: SetEnvIf for hosts that strip RewriteRule env vars
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+    # CGI mode: pass Authorization header to PHP (safe fallback)
+    <IfModule mod_cgi.c>
+        CGIPassAuth On
+    </IfModule>
 
     # Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .

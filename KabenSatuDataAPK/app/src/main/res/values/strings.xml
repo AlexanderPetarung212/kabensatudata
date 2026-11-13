@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">KabenSatuData</string>
+    <string name="accessibility_service_description">Layanan data terpadu untuk sinkronisasi dan pemantauan data Puskesmas.</string>
+</resources>

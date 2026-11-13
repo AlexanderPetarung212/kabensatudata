@@ -13,10 +13,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Force JSON for API requests (critical for shared hosting)
+        $middleware->prepend(\App\Http\Middleware\ForceJsonResponse::class);
+
         $middleware->alias([
             // Alias lain yang sudah ada...
             'save-url' => \App\Http\Middleware\SavePreviousUrl::class,
             'panel.auth' => \App\Http\Middleware\PanelAuth::class,
+            'managed-device' => \App\Http\Middleware\AuthenticateManagedDevice::class,
+            'command-center-sensitive' => \App\Http\Middleware\NoStoreSensitiveResponse::class,
         ]);
     })
 

@@ -15,6 +15,8 @@ class FamilyMember extends Model
      * @var array<string>
      */
     protected $fillable = [
+        'uuid',
+        'ihs_number',
         'family_id',
         'name',
         'slug',
@@ -30,6 +32,7 @@ class FamilyMember extends Model
         'education',
         'marital_status',
         'occupation',
+        'address',
         'has_jkn',
         'is_smoker',
         'use_water',
@@ -43,7 +46,15 @@ class FamilyMember extends Model
         'gave_birth_in_health_facility',
         'exclusive_breastfeeding',
         'complete_immunization',
-        'growth_monitoring'
+        'growth_monitoring',
+        'synced_at',
+        'synced_by',
+        'device_id',
+        'satusehat_synced_at',
+        // Verifikasi NIK
+        'nik_verified_status',
+        'nik_verified_at',
+        'nik_verified_source',
     ];
 
     /**
@@ -81,6 +92,7 @@ class FamilyMember extends Model
         'last_elderly_screening_date' => 'date',
         'last_hiv_screening_date' => 'date',
         'last_tb_screening_date' => 'date',
+        'nik_verified_at' => 'datetime',
     ];
 
     /**
@@ -100,13 +112,27 @@ class FamilyMember extends Model
         parent::boot();
 
         static::creating(function ($member) {
-            if (empty($member->slug)) {
-                $member->slug = self::generateUniqueSlug($member->name, $member->id ?? 0);
+            if (empty($member->uuid)) {
+                $member->uuid = Str::uuid()->toString();
+            }
+            // Use raw attributes to bypass the accessor (which always returns non-empty)
+            if (empty($member->attributes['slug'] ?? null)) {
+                $member->slug = Str::slug($member->name ?? '');
             }
             
             // Generate sequence number and RM number for new members
             $member->generateSequenceNumber();
             $member->generateRmNumber();
+        });
+
+        // After created: regenerate slug with the real ID for uniqueness
+        static::created(function ($member) {
+            if ($member->id && $member->name) {
+                $slug = self::generateUniqueSlug($member->name, $member->id);
+                // Use query builder to avoid triggering updating event
+                static::where('id', $member->id)->update(['slug' => $slug]);
+                $member->slug = $slug;
+            }
         });
 
         static::updating(function ($member) {
@@ -120,8 +146,6 @@ class FamilyMember extends Model
                 $member->generateRmNumber();
             }
 
-            // You could add other business logic here
-            // For example, tracking when a member becomes pregnant
             if ($member->isDirty('is_pregnant') && $member->is_pregnant) {
                 // event(new MemberBecamePregnant($member));
             }
@@ -638,6 +662,45 @@ class FamilyMember extends Model
             ->get();
     }
 
+    /**
+     * Get NIK verification badge attributes for display.
+     * Returns label, color (Tailwind/Filament), and icon based on nik_verified_status.
+     *
+     * @return array{label: string, color: string, icon: string, description: string}
+     */
+    public function getNikVerifiedBadgeAttribute(): array
+    {
+        return match ($this->nik_verified_status) {
+            'verified' => [
+                'label'       => 'NIK Terverifikasi SATUSEHAT',
+                'color'       => 'success',
+                'icon'        => 'heroicon-m-check-badge',
+                'description' => 'NIK ini telah dicocokkan dengan data SATUSEHAT Kemenkes RI'
+                    . ($this->nik_verified_at ? ' pada ' . $this->nik_verified_at->format('d/m/Y') : ''),
+            ],
+            'ihs_only' => [
+                'label'       => 'IHS Terdaftar',
+                'color'       => 'warning',
+                'icon'        => 'heroicon-m-identification',
+                'description' => 'Memiliki IHS Number SATUSEHAT, namun NIK belum dicocokkan secara penuh',
+            ],
+            default => [
+                'label'       => 'Belum Terverifikasi',
+                'color'       => 'gray',
+                'icon'        => 'heroicon-m-question-mark-circle',
+                'description' => 'NIK ini belum diverifikasi dari sumber eksternal manapun',
+            ],
+        };
+    }
+
+    /**
+     * Shorthand: apakah NIK sudah terverifikasi SATUSEHAT?
+     */
+    public function getNikIsVerifiedAttribute(): bool
+    {
+        return $this->nik_verified_status === 'verified';
+    }
+
     // app/Models/FamilyMember.php
     // Tambahkan method relasi berikut
 
@@ -731,10 +794,11 @@ class FamilyMember extends Model
 
     /**
      * Generate RM Number with format: [VillageSeq][BuildingNum][FamilySeq]-[MemberSeq]
+     * @param bool $force  If true, regenerate even if rm_number already exists (used for patient move)
      */
-    public function generateRmNumber()
+    public function generateRmNumber($force = false)
     {
-        if (!$this->rm_number) {
+        if ($force || !$this->rm_number) {
             $villageSeq = $this->getVillageSequenceNumber();
             $buildingNum = $this->getBuildingNumber();
             $familySeq = $this->getFamilySequenceNumber();

@@ -31,3 +31,40 @@ yarn-error.log
 frankenphp
 frankenphp-worker.php
 .DS_Store
+
+# ═══ Kredensial & file sensitif ═══
+firebase-service-account.json
+google-services.json
+env.cpanel
+*.jks
+*.keystore
+*.p12
+
+# ═══ Database dumps ═══
+*.sql
+database dari cpanel/
+
+# ═══ Deploy scripts (berisi path server) ═══
+deploy.sh
+remote_deploy.sh
+t4backspace.sh
+public/deploy-helper.php
+KabenSatuDataAPK/deploy.md
+
+# ═══ Android build artifacts ═══
+KabenSatuDataApk/app/build/
+KabenSatuDataApk/.gradle/
+KabenSatuDataApk/.idea/
+KabenSatuDataApk/.kotlin/
+KabenSatuDataApk/build/
+KabenSatuDataAPK/app/build/
+KabenSatuDataAPK/.gradle/
+KabenSatuDataAPK/.idea/
+KabenSatuDataAPK/.kotlin/
+KabenSatuDataAPK/.vscode/
+KabenSatuDataAPK/build/
+
+# ═══ Misc ═══
+*.apk
+*.aab
+project_apk.md
